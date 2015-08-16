@@ -66,7 +66,7 @@ Parse.Cloud.define("findRestaurant", function(request, response) {
         //     restaurant.save(null, {
         //         success: function(restaurant) {
         //             console.log('successfully saved');
-        //         },
+        //         }, =
         //         error: function(restaurant) {
         //             console.log('error while saving the restaurant');
         //         }
@@ -101,6 +101,113 @@ Parse.Cloud.define("findRestaurant", function(request, response) {
     });
     // console.log('list of venues ' + listRestaurant);
 
+});
+
+// Parse.Cloud.define("sendMiamRequest", function(request, response) {
+//     // var userQuery = new Parse.Query(Parse.User);
+//     // userQuery.equalTo("name", "netbe");
+//
+//     // Find devices associated with these users
+//     var pushQuery = new Parse.Query(Parse.Installation);
+//     // pushQuery.matchesQuery('user', userQuery);
+//
+//     // Send push notification to query
+//     Parse.Push.send({
+//       where: pushQuery,
+//       data: {
+//         alert: "Miam?",
+//         category: "MiamRequest"
+//       }
+//     }, {
+//       success: function() {
+//           console.log('yoo');
+//         // Push was successful
+//       },
+//       error: function(error) {
+//           console.log('nooo');
+//         // Handle error
+//       }
+//     });
+// });
+
+Parse.Cloud.define("sendMiamRequest", function(request, response) {
+    sendPush({
+        alert: "Miam?",
+        type: "MiamAccepted",
+        targetUserId: "yU9R9OzpgO",
+        creatorName: "Markus",
+        miamId: "02qm2wbOWo"
+    });
+});
+
+function sendPush(data) {
+    var userQuery = new Parse.Query(Parse.User);
+    userQuery.equalTo("objectId", data.targetUserId);
+
+    // Find devices associated with these users
+    var pushQuery = new Parse.Query(Parse.Installation);
+    pushQuery.matchesQuery('user', userQuery);
+
+    var data = {
+      alert: data.alert,
+      category: data.type,
+      miamId: data.miamId,
+      username: data.creatorName
+  };
+
+    // Send push notification to query
+    Parse.Push.send({
+      where: pushQuery,
+      data: data
+    }, {
+      success: function() {
+          console.log('yoo');
+        // Push was successful
+      },
+      error: function(error) {
+          console.log('nooo');
+        // Handle error
+      }
+    });
+}
+
+Parse.Cloud.afterSave("Invitation", function(request, response) {
+    var miamId;
+    var miam = request.object.get("miam");
+    var miamQuery = new Parse.Query("Miam");
+    miamQuery.get(miam.id, {
+        success: function(miam) {
+          miamId = miam.id;
+          var guest = request.object.get("guest");
+          var guestQuery = new Parse.Query("_User");
+          guestQuery.get(guest.id, {
+          success: function(user) {
+              var createQuery = new Parse.Query("_User");
+              var creatorId = miam.get('creator').id;
+              createQuery.get(miam.get('creator').id, {
+                  success: function(creator) {
+                    sendPush({
+                        alert: "Miam?",
+                        type: "MiamRequest",
+                        targetUserId: user.id,
+                        creatorName: creator.get('username'),
+                        miamId: miamId
+                    });
+                  },
+                  error: function(error) {
+                    console.error("Got an error " + error.code + " : " + error.message);
+                  }
+              })
+          },
+          error: function(error) {
+            console.error("Got an error " + error.code + " : " + error.message);
+          }
+          });
+        },
+        error: function(error) {
+          console.error("Got an error " + error.code + " : " + error.message);
+        }
+    });
 });
 
 // Parse.Cloud.run('findRestaurant', { movie: 'The Matrix' }, {
