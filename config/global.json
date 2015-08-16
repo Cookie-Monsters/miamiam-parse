@@ -1,0 +1,14 @@
+{
+  "global": {
+    "parseVersion": "1.5.0"
+  },
+  "applications": {
+    "_default": {
+      "link": "miamiam"
+    },
+    "miamiam": {
+      "applicationId": "Ro4FUV2gpOJnamkotFZWN65AYc23Tp8Sn4iyKKdt",
+      "masterKey": "6vrmGsxO4Bg456nBdWrgntBTGA4hfn9SEtGIToXb"
+    }
+  }
+}
