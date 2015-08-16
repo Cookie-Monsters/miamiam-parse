@@ -27,19 +27,11 @@ module.exports = {
           radius: params['distance'],
           intent: 'browse',
           v: 20130815
-
-        }
-     return Parse.Cloud.httpRequest({
-       method: "GET",
-       url: "https://" + url + "/venues/search",
-       params: queryParams,
-    }).then(function(httpResponse) {
-       successCallback(httpResponse);
-
-   }, function(httpResponse) {
-          errorCallback(httpResponse);
-    //    console.error('Request failed with response code ' + httpResponse.status);
-    //    response.error("error");
-   });
+      };
+        return Parse.Cloud.httpRequest({
+            method: "GET",
+            url: "https://" + url + "/venues/search",
+            params: queryParams
+        }).then(successCallback, errorCallback);
    }
 }

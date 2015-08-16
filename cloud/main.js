@@ -12,18 +12,21 @@ Parse.Cloud.define("findRestaurant", function(request, response) {
 
     // 1) produce resultLocation with radius
     // 2) call foursquare
-    console.log(request.params);
+    // console.log(request.params);
     var foursquare = require('cloud/foursquare.js');
     foursquare.initialize('YD4O1MM5FRZSKI3FFSL200YT2Y2TIW40SZRHT0GN51FME4W0', 'NHGCYC4MOG2XAAIGUULEEUPWBOMG0UOFY1CKP1JEJBVA3MBS');
     var listRestaurant = [];
     foursquare.searchVenues(request.params, function(httpResponse) {
-        // console.log(httpResponse.text);
-        listRestaurant = httpResponse.data['response']['venues'];
-        for (var venue in listRestaurant) {
-            console.log('venue ' + listRestaurant['venue']);
+        // console.log(httpResponse.data.response.venues);
+        listRestaurant = httpResponse.data.response.venues;
+        console.log(listRestaurant);
+        console.log('keks');
+        for (var x = 0; x < listRestaurant.length; x++) {
+            console.log(listRestaurant[x].name);
         }
         // console.log('list of venues ' + listRestaurant);
     }, function(httpResponse) {
+        // console.log(httpResponse);
         console.error(httpResponse.text);
     });
     // console.log('list of venues ' + listRestaurant);
