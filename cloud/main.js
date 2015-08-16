@@ -1,10 +1,3 @@
-
-// Use Parse.Cloud.define to define as many cloud functions as you want.
-// For example:
-Parse.Cloud.define("hello", function(request, response) {
-  response.success("Hello world!");
-});
-
 function toRad(value) {
    return value * (Math.PI / 180);
 }
@@ -35,23 +28,15 @@ function calculateMidPoint(firstGeoPoint, secondGeoPoint) {
 }
 
 Parse.Cloud.define("findRestaurant", function(request, response) {
-    // locationA
-    // locationB
-
-    // 1) produce resultLocation with radius
-    // 2) call foursquare
-    // console.log(request.params);
+    if (!request.object.hasProperty("miam")) {
+        return;
+    }
     var foursquare = require('cloud/foursquare.js');
     foursquare.initialize('YD4O1MM5FRZSKI3FFSL200YT2Y2TIW40SZRHT0GN51FME4W0', 'NHGCYC4MOG2XAAIGUULEEUPWBOMG0UOFY1CKP1JEJBVA3MBS');
-    var listRestaurant = [];
     foursquare.searchVenues(request.params, function(httpResponse) {
-        // console.log(httpResponse.data.response.venues);
-        listRestaurant = httpResponse.data.response.venues;
+        var listRestaurant = httpResponse.data.response.venues;
 
-        var Miam = Parse.Object.extend("Miam");
         var Restaurant = Parse.Object.extend("Restaurant");
-
-        var miam = new Miam();
 
         // for (var x = 0; x < listRestaurant.length; x++) {
         //     var restaurant = new Restaurant();
@@ -99,36 +84,7 @@ Parse.Cloud.define("findRestaurant", function(request, response) {
         // console.log(httpResponse);
         console.error(httpResponse.text);
     });
-    // console.log('list of venues ' + listRestaurant);
-
 });
-
-// Parse.Cloud.define("sendMiamRequest", function(request, response) {
-//     // var userQuery = new Parse.Query(Parse.User);
-//     // userQuery.equalTo("name", "netbe");
-//
-//     // Find devices associated with these users
-//     var pushQuery = new Parse.Query(Parse.Installation);
-//     // pushQuery.matchesQuery('user', userQuery);
-//
-//     // Send push notification to query
-//     Parse.Push.send({
-//       where: pushQuery,
-//       data: {
-//         alert: "Miam?",
-//         category: "MiamRequest"
-//       }
-//     }, {
-//       success: function() {
-//           console.log('yoo');
-//         // Push was successful
-//       },
-//       error: function(error) {
-//           console.log('nooo');
-//         // Handle error
-//       }
-//     });
-// });
 
 Parse.Cloud.define("sendMiamRequest", function(request, response) {
     sendPush({
@@ -172,12 +128,14 @@ function sendPush(data) {
 }
 
 Parse.Cloud.afterSave("Invitation", function(request, response) {
-    var miamId;
+    if (!request.object.hasProperty("miam") || request.object.hasProperty("guest")) {
+        return false;
+    }
     var miam = request.object.get("miam");
     var miamQuery = new Parse.Query("Miam");
     miamQuery.get(miam.id, {
         success: function(miam) {
-          miamId = miam.id;
+          var miamId = miam.id;
           var guest = request.object.get("guest");
           var guestQuery = new Parse.Query("_User");
           guestQuery.get(guest.id, {
@@ -210,10 +168,16 @@ Parse.Cloud.afterSave("Invitation", function(request, response) {
     });
 });
 
-// Parse.Cloud.run('findRestaurant', { movie: 'The Matrix' }, {
-//   success: function(ratings) {
-//     // ratings should be 4.5
-//   },
-//   error: function(error) {
-//   }
-// });
+Parse.Cloud.afterSave("Miam", function(request, response) {
+    if (!request.object.hasProperty("status")) {
+        return;
+    }
+    var status = request.object.get("status");
+    switch (status) {
+        case "accepted":
+            // stuff
+            break;
+        default:
+            // stuff
+    }
+});
