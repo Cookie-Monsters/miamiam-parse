@@ -1,3 +1,8 @@
+/* TODO:
+- Modify model for accepting miam. right now it is in the status of class miam.
+It won't work for multiple guests...
+- hasProperty seems to not work.
+*/
 function toRad(value) {
    return value * (Math.PI / 180);
 }
@@ -28,9 +33,6 @@ function calculateMidPoint(firstGeoPoint, secondGeoPoint) {
 }
 
 Parse.Cloud.define("findRestaurant", function(request, response) {
-    if (!request.object.hasProperty("miam")) {
-        return;
-    }
     var foursquare = require('cloud/foursquare.js');
     foursquare.initialize('YD4O1MM5FRZSKI3FFSL200YT2Y2TIW40SZRHT0GN51FME4W0', 'NHGCYC4MOG2XAAIGUULEEUPWBOMG0UOFY1CKP1JEJBVA3MBS');
     foursquare.searchVenues(request.params, function(httpResponse) {
@@ -38,26 +40,27 @@ Parse.Cloud.define("findRestaurant", function(request, response) {
 
         var Restaurant = Parse.Object.extend("Restaurant");
 
-        // for (var x = 0; x < listRestaurant.length; x++) {
-        //     var restaurant = new Restaurant();
-        //     var point = new Parse.GeoPoint(parseFloat(listRestaurant[x].location.lat), parseFloat(listRestaurant[x].location.lng));
-        //     restaurant.set("foursquareId", listRestaurant[x].id);
-        //     restaurant.set("name", listRestaurant[x].name);
-        //     restaurant.set("geoPosition", point);
-        //     restaurant.set("postalCode", listRestaurant[x].postalCode);
-        //     restaurant.set("address", listRestaurant[x].address);
-        //     restaurant.set("distance", listRestaurant[x].distance);
-        //     restaurant.set("miam", miam);
-        //     restaurant.save(null, {
-        //         success: function(restaurant) {
-        //             console.log('successfully saved');
-        //         }, =
-        //         error: function(restaurant) {
-        //             console.log('error while saving the restaurant');
-        //         }
-        //     });
-        // }
-
+        for (var x = 0; x < listRestaurant.length; x++) {
+            var restaurant = new Restaurant();
+            var point = new Parse.GeoPoint(parseFloat(listRestaurant[x].location.lat), parseFloat(listRestaurant[x].location.lng));
+            restaurant.set("foursquareId", listRestaurant[x].id);
+            restaurant.set("name", listRestaurant[x].name);
+            restaurant.set("geoPosition", point);
+            restaurant.set("postalCode", listRestaurant[x].postalCode);
+            restaurant.set("address", listRestaurant[x].address);
+            restaurant.set("distance", listRestaurant[x].distance);
+            restaurant.set("miam", miam);
+            restaurant.save(null, {
+                success: function(restaurant) {
+                    console.log('successfully saved');
+                },
+                error: function(restaurant) {
+                    console.log('error while saving the restaurant');
+                }
+            });
+        }
+        // TODO: move this to own function create meeting point
+        // test it and reactivate afterwards
         var first = new Parse.GeoPoint(52.518179, 13.392245);
         var second = new Parse.GeoPoint(52.554202, 13.469149);
         console.log(first.kilometersTo(second));
@@ -91,27 +94,36 @@ Parse.Cloud.define("sendMiamRequest", function(request, response) {
         alert: "Miam?",
         type: "MiamAccepted",
         targetUserId: "yU9R9OzpgO",
-        creatorName: "Markus",
+        sender: "Markus",
         miamId: "02qm2wbOWo"
     });
 });
-
+/* Params
+targetUserId
+sender
+type
+...
+*/
+// cannot send object? error: bad special key: __type
 function sendPush(data) {
+    console.log("sending push 1");
+
     var userQuery = new Parse.Query(Parse.User);
     userQuery.equalTo("objectId", data.targetUserId);
-
+    console.log("sending push 2");
     // Find devices associated with these users
     var pushQuery = new Parse.Query(Parse.Installation);
     pushQuery.matchesQuery('user', userQuery);
-
+    console.log("sending push 3");
     var data = {
       alert: data.alert,
       category: data.type,
       miamId: data.miamId,
-      username: data.creatorName
+      username: data.sender
   };
-
+    console.log("sending push 4");
     // Send push notification to query
+    console.log("sending push " + data);
     Parse.Push.send({
       where: pushQuery,
       data: data
@@ -148,7 +160,7 @@ Parse.Cloud.afterSave("Invitation", function(request, response) {
                         alert: "Miam?",
                         type: "MiamRequest",
                         targetUserId: user.id,
-                        creatorName: creator.get('username'),
+                        sender: creator.get('username'),
                         miamId: miamId
                     });
                   },
@@ -169,15 +181,29 @@ Parse.Cloud.afterSave("Invitation", function(request, response) {
 });
 
 Parse.Cloud.afterSave("Miam", function(request, response) {
-    if (!request.object.hasProperty("status")) {
-        return;
-    }
-    var status = request.object.get("status");
+    var miam = request.object;
+    var status = miam.get("status");
+    // TODO: retrieve guest from miam.
+    var guest = miam.get("creator")
     switch (status) {
         case "accepted":
-            // stuff
+            // Notify creator a guest accepted the invite.
+            console.log("accepted. Sending push");
+            sendPush({
+                alert: "Miam!",
+                type: "MiamAccepted",
+                targetUserId: miam.get("creator"),
+                sender: guest,
+                miamId: miam.id
+            });
+            // TODO: cancels all other invites
+            break;
+        case "pending":
+                // stuff
+            console.log("pending");
             break;
         default:
+            console.log("unsupported status " + status);
             // stuff
     }
 });
